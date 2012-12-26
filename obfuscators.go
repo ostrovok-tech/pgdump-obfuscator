@@ -52,9 +52,6 @@ func ScrambleBytes(s []byte) []byte {
 	hash.Write(s)
 	sumBytes := hash.Sum(nil)
 
-	// Remove to make obfuscation pure function.
-	Salt[0] = sumBytes[0]
-
 	b64 := make([]byte, base64.URLEncoding.EncodedLen(len(sumBytes)))
 	base64.URLEncoding.Encode(b64, sumBytes)
 	return b64
