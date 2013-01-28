@@ -44,6 +44,8 @@ func processDataLine(config *Configuration, target *Target, columns []string, li
 		log.Println("Number of columns does not match number of data fields")
 		return line
 	}
+
+	var value []byte
 	for _, to := range config.Obfuscations {
 		if to.T.Table != target.Table {
 			continue
@@ -54,10 +56,13 @@ func processDataLine(config *Configuration, target *Target, columns []string, li
 			log.Println("Target column not found in earlier header. Wrong table?")
 			return line
 		}
-		fields[columnIndex] = to.O(fields[columnIndex])
-		line = bytes.Join(fields, fieldSeparator)
+		value = fields[columnIndex]
+		if len(value) > 0 {
+			fields[columnIndex] = to.O(value)
+		}
 	}
 
+	line = bytes.Join(fields, fieldSeparator)
 	return line
 }
 

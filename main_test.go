@@ -43,7 +43,7 @@ COPY auth_user (id, username, first_name, last_name, email, password, is_staff, 
 COPY accounts_profile (id, user_id, opted_in, next_break, status, phone, last_visited, come_from, cs_letter, city_id, budget_range_id, prefs_opt) FROM stdin;
 6161	12113	f	\N	0	+74991002000	2011-07-04 12:28:33.895325+00	\N	f	\N	\N	\N
 1223	1321	f	\N	0	666666666	2011-09-28 09:37:20.83051+00	\N	f	\N	\N	\N
-4423	55512	f	\N	0	+3801445223001	\N	\N	f	\N	\N	\N
+4423	55512	f	\N	0		\N	\N	f	\N	\N	\N
 \.
 `
 
