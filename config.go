@@ -17,7 +17,7 @@ var Config *Configuration = &Configuration{
 		},
 		TargetedObfuscation{
 			Target{Table: "accounts_profile", Column: "phone"},
-			ScramblePhone,
+			ScrambleDigits,
 		},
 	},
 }

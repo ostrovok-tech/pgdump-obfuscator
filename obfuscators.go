@@ -1,3 +1,5 @@
+// Scramble functions.
+// Input `s []byte` is required to be not nil.
 package main
 
 import (
@@ -19,7 +21,7 @@ func ScrambleEmail(s []byte) []byte {
 	return append(ScrambleBytes(mailbox)[:13], domain...)
 }
 
-func ScramblePhone(s []byte) []byte {
+func ScrambleDigits(s []byte) []byte {
 	if len(s) == 1 {
 		return s[:0]
 	}
@@ -29,13 +31,15 @@ func ScramblePhone(s []byte) []byte {
 	hash.Write(s)
 	sumBytes := hash.Sum(nil)
 
-	// Exploit the fact that 32 bytes hash sum is greater than most phone numbers.
-	s[0] = '+'
-	for i := range s[1:] {
-		if i+1 >= len(sumBytes) {
-			break
+	j := 0
+	for i, b := range s {
+		if b >= '0' && b <= '9' {
+			s[i] = '0' + (sumBytes[j]+b)%10
 		}
-		s[i+1] = '0' + sumBytes[i]%10
+		j++
+		if j >= len(sumBytes) {
+			j = 0
+		}
 	}
 	return s
 }

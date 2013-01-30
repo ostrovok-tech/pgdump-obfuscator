@@ -19,7 +19,7 @@ var testConfig01 = &Configuration{
 		},
 		TargetedObfuscation{
 			Target{Table: "accounts_profile", Column: "phone"},
-			ScramblePhone,
+			ScrambleDigits,
 		},
 	},
 }
@@ -68,5 +68,23 @@ func TestProcess01(t *testing.T) {
 		!strings.Contains(outString, `	2011-07-04 12:28:33.895325+00	\N	f	\N	\N	\N`) ||
 		!strings.Contains(outString, `1223	1321	f	\N	0	`) {
 		t.Fatal("Changed other data")
+	}
+}
+
+func TestScrambleDigits01(t *testing.T) {
+	Salt = []byte("test-salt")
+	out := string(ScrambleDigits([]byte("+7(876) 123-0011 или 99999999999;")))
+	if out != "+1(584) 047-9250 или 22280031035;" {
+		t.Fatal("ScrambleDigits: invalid result Digits:", out)
+	}
+}
+
+func BenchmarkScrambleDigits01(b *testing.B) {
+	Salt = []byte("test-salt")
+	Digits := []byte("+7(876) 123-0011")
+	for i := 0; i < b.N; i++ {
+		if ScrambleDigits(Digits) == nil {
+			b.Fatal("Result is nil")
+		}
 	}
 }
