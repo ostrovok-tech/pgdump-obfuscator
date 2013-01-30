@@ -36,13 +36,12 @@ func find(elements []string, one string) int {
 	return -1
 }
 
-var fieldSeparator []byte = []byte("\t")
+var fieldSeparator = []byte("\t")
 
-func processDataLine(config *Configuration, target *Target, columns []string, line []byte) []byte {
-	fields := bytes.Split(line, fieldSeparator)
+func processDataLine(config *Configuration, target *Target, columns []string, line *[]byte) error {
+	fields := bytes.Split(*line, fieldSeparator)
 	if len(fields) != len(columns) {
-		log.Println("Number of columns does not match number of data fields")
-		return line
+		return errors.New("Number of columns does not match number of data fields")
 	}
 
 	var value []byte
@@ -53,8 +52,7 @@ func processDataLine(config *Configuration, target *Target, columns []string, li
 		// TODO: try map
 		columnIndex := find(columns, to.T.Column)
 		if columnIndex == -1 {
-			log.Println("Target column not found in earlier header. Wrong table?")
-			return line
+			return errors.New("Target column not found in earlier header. Wrong table?")
 		}
 		value = fields[columnIndex]
 		if len(value) > 0 {
@@ -62,8 +60,8 @@ func processDataLine(config *Configuration, target *Target, columns []string, li
 		}
 	}
 
-	line = bytes.Join(fields, fieldSeparator)
-	return line
+	*line = bytes.Join(fields, fieldSeparator)
+	return nil
 }
 
 const (
@@ -71,6 +69,11 @@ const (
 	parseStateOther
 	parseStateCopy
 )
+
+var bytesCopyBegin = []byte("COPY ")
+var bytesCopyEnd = []byte("\\.\n")
+
+const copySyntaxDelimiters = " \n'\"(),;"
 
 func process(config *Configuration, input *bufio.Reader, output io.Writer) error {
 	target := Target{}
@@ -85,8 +88,17 @@ func process(config *Configuration, input *bufio.Reader, output io.Writer) error
 		}
 	}
 
-	for {
-		line, readErr := input.ReadBytes('\n')
+	var currentLineNumber uint64
+	var line []byte
+	defer func() {
+		if r := recover(); r != nil {
+			log.Fatalln("Line", currentLineNumber, "error:", r)
+		}
+	}()
+
+	var err, readErr error
+	for currentLineNumber = 0; ; currentLineNumber++ {
+		line, readErr = input.ReadBytes('\n')
 		if readErr != nil && readErr != io.EOF {
 			panic("At ReadBytes")
 		}
@@ -96,11 +108,11 @@ func process(config *Configuration, input *bufio.Reader, output io.Writer) error
 
 		switch state {
 		case parseStateOther:
-			if bytes.HasPrefix(line, []byte("COPY ")) {
+			if bytes.HasPrefix(line, bytesCopyBegin) {
 				state = parseStateCopy
 				lineString := string(line)
 				tokens := strings.FieldsFunc(lineString, func(r rune) bool {
-					return strings.ContainsRune(" \n'\"(),;", r)
+					return strings.ContainsRune(copySyntaxDelimiters, r)
 				})
 				if len(tokens) < 4 {
 					return errors.New("process: parse error: too few tokens in COPY statement: " + string(line))
@@ -109,13 +121,16 @@ func process(config *Configuration, input *bufio.Reader, output io.Writer) error
 				columns = tokens[2 : len(tokens)-2]
 			}
 		case parseStateCopy:
-			if bytes.Equal(line, []byte("\\.\n")) {
+			if bytes.Equal(line, bytesCopyEnd) {
 				state = parseStateOther
 				columns = nil
 				target = Target{}
 			} else if find(configuredTables, target.Table) != -1 {
 				// Data rows
-				line = processDataLine(config, &target, columns, line)
+				err = processDataLine(config, &target, columns, &line)
+				if err != nil {
+					log.Println("process: line", currentLineNumber, "error:", err)
+				}
 			}
 		}
 		output.Write(line)
