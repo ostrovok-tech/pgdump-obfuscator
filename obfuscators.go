@@ -34,21 +34,17 @@ func ScrambleEmail(s []byte) []byte {
 	if s[0] != '{' && s[len(s)-1] != '}' {
 		return scrambleOneEmail(s)
 	}
-	// println(">se>", string(s))
 	parts := bytes.Split(s[1:len(s)-1], []byte{','})
 	partsNew := make([][]byte, len(parts))
 	outLength := 2 + len(parts) - 1
 	for i, bs := range parts {
-		// println(">se.p>", string(bs))
 		partsNew[i] = scrambleOneEmail(bs)
-		// println(">se.P>", string(partsNew[i]))
 		outLength += len(partsNew[i])
 	}
 	s = make([]byte, outLength)
 	s[0] = '{'
 	s[len(s)-1] = '}'
 	copy(s[1:len(s)-1], bytes.Join(partsNew, []byte{','}))
-	// println(">sr>", string(s))
 	return s
 }
 

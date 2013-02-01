@@ -55,7 +55,11 @@ func processDataLine(config *Configuration, target *Target, columns []string, li
 			return errors.New("Target column not found in earlier header. Wrong table?")
 		}
 		value = fields[columnIndex]
-		if len(value) > 0 {
+		if len(value) == 0 {
+			continue
+		} else if len(value) == 2 && value[0] == '\\' && value[1] == 'N' {
+			continue
+		} else {
 			fields[columnIndex] = to.O(value)
 		}
 	}
