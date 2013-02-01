@@ -47,6 +47,12 @@ COPY accounts_profile (id, user_id, opted_in, next_break, status, phone, last_vi
 \.
 `
 
+func assertString(t *testing.T, s, expected string) {
+	if s != expected {
+		t.Fatalf("Expected: '%v' received: '%v'", expected, s)
+	}
+}
+
 func TestProcess01(t *testing.T) {
 	input := bufio.NewReader(bytes.NewBufferString(testInput01))
 	output := new(bytes.Buffer)
@@ -71,20 +77,56 @@ func TestProcess01(t *testing.T) {
 	}
 }
 
-func TestScrambleDigits01(t *testing.T) {
+func TestScrambleBytes(t *testing.T) {
+	Salt = []byte("test-salt")
+	out1 := string(ScrambleBytes([]byte("everyone lies")))
+	assertString(t, out1, "oSE0Sm0yioFSJ")
+	out2 := string(ScrambleBytes([]byte("very long line very long line very long line very")))
+	assertString(t, out2, "4ce6EsWcmziuUzpEtV0rGiZAOtiHprwB0wWWWuOYrHkqHQtAN")
+}
+
+func TestScrambleDigits(t *testing.T) {
 	Salt = []byte("test-salt")
 	out := string(ScrambleDigits([]byte("+7(876) 123-0011 или 99999999999;")))
-	if out != "+1(584) 047-9250 или 22280031035;" {
-		t.Fatal("ScrambleDigits: invalid result Digits:", out)
+	assertString(t, out, "+1(584) 047-9250 или 22280031035;")
+}
+
+func TestScrambleEmail(t *testing.T) {
+	Salt = []byte("test-salt")
+	out1 := string(ScrambleEmail([]byte("solar.sultan@emerginspaceagency.com")))
+	assertString(t, out1, "lxtTUsvMGzRo@example.com")
+	out2 := string(ScrambleEmail([]byte("{foo@bar.com,test@example.com}")))
+	assertString(t, out2, "{DK3@example.com,LDVR@example.com}")
+}
+
+func BenchmarkScrambleBytes(b *testing.B) {
+	Salt = []byte("test-salt")
+	s := []byte("everybody lies many times")
+	for i := 0; i < b.N; i++ {
+		ScrambleBytes(s)
 	}
 }
 
-func BenchmarkScrambleDigits01(b *testing.B) {
+func BenchmarkScrambleDigits(b *testing.B) {
 	Salt = []byte("test-salt")
-	Digits := []byte("+7(876) 123-0011")
+	digits := "+7(876) 123-0011"
 	for i := 0; i < b.N; i++ {
-		if ScrambleDigits(Digits) == nil {
-			b.Fatal("Result is nil")
-		}
+		ScrambleDigits([]byte(digits))
+	}
+}
+
+func BenchmarkScrambleEmail(b *testing.B) {
+	Salt = []byte("test-salt")
+	email := "igor.igorev@igorooking.mx1.uk.gb"
+	for i := 0; i < b.N; i++ {
+		ScrambleEmail([]byte(email))
+	}
+}
+
+func BenchmarkScrambleEmailArray(b *testing.B) {
+	Salt = []byte("test-salt")
+	email := "{admin@slapmode.de,trisha@moodnight.com.co,wilf@wolf.herztner.jp}"
+	for i := 0; i < b.N; i++ {
+		ScrambleEmail([]byte(email))
 	}
 }
