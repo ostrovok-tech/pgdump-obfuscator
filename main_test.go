@@ -88,6 +88,17 @@ func TestScrambleBytes(t *testing.T) {
 	assertString(t, out1, "oSE0Sm0yioFSJ")
 	out2 := string(ScrambleBytes([]byte("very long line very long line very long line very")))
 	assertString(t, out2, "4ce6EsWcmziuUzpEtV0rGiZAOtiHprwB0wWWWuOYrHkqHQtAN")
+	out3 := string(ScrambleBytes([]byte("{item1,\"item space 2\"}")))
+	assertString(t, out3, "{yho3y,rEZwPM7FVuVf1S}")
+}
+
+func TestScrambleBytesUtf8(t *testing.T) {
+	Salt = []byte("test-salt")
+	// Output must be of same length as input
+	out1 := string(ScrambleBytes([]byte("also русский and 你好")))
+	assertString(t, out1, "emEY0UP-gkC2kV+J6pK")
+	out2 := string(ScrambleBytes([]byte("{\"array z\",руки,你好}")))
+	assertString(t, out2, "{LoKXy6kRZ,uefS,G1}")
 }
 
 func TestScrambleDigits(t *testing.T) {
@@ -107,6 +118,14 @@ func TestScrambleEmail(t *testing.T) {
 func BenchmarkScrambleBytes(b *testing.B) {
 	Salt = []byte("test-salt")
 	s := []byte("everybody lies many times")
+	for i := 0; i < b.N; i++ {
+		ScrambleBytes(s)
+	}
+}
+
+func BenchmarkScrambleBytesArray(b *testing.B) {
+	Salt = []byte("test-salt")
+	s := []byte("{everybody,lies,\"many many many\",times}")
 	for i := 0; i < b.N; i++ {
 		ScrambleBytes(s)
 	}

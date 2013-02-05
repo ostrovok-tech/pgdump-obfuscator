@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
+	"unicode/utf8"
 )
 
 var Salt []byte
@@ -74,11 +75,14 @@ func GenScrambleBytes(maxLength uint) func([]byte) []byte {
 	}
 }
 
+var bytesOutputAlphabetLength = byte(len(bytesOutputAlphabet))
+var bytesKeep = []byte("',\\{}")
 var bytesOutputAlphabet = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-_")
-var bytesAlphabetLength = byte(len(bytesOutputAlphabet))
 
 // Modifies `s` in-place.
 func ScrambleBytes(s []byte) []byte {
+	isArray := len(s) >= 2 && s[0] == '{' && s[len(s)-1] == '}'
+
 	hash := sha256.New()
 	// Hard-coding this constant wins less than 3% in BenchmarkScrambleBytes
 	const sumLength = 32 // SHA256/8
@@ -86,8 +90,22 @@ func ScrambleBytes(s []byte) []byte {
 	hash.Write(s)
 	sumBytes := hash.Sum(nil)
 
-	for i, b := range s {
-		s[i] = bytesOutputAlphabet[(sumBytes[i%sumLength]+b)%bytesAlphabetLength]
+	reader := bytes.NewReader(s)
+	var r rune
+	var err error
+	for i := 0; ; i++ {
+		r, _, err = reader.ReadRune()
+		if err != nil {
+			s = s[:i]
+			break
+		}
+		if !isArray || bytes.IndexRune(bytesKeep, r) == -1 {
+			// Do not insert, so should not obstruct reader.
+			s[i] = bytesOutputAlphabet[(sumBytes[i%sumLength]+byte(r))%bytesOutputAlphabetLength]
+		} else {
+			// Possibly shift bytes to beginning of s.
+			s[i] = byte(r)
+		}
 	}
 	return s
 }
