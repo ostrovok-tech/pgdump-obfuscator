@@ -12,59 +12,6 @@ var Salt []byte
 
 const emailDomain = "@example.com"
 
-func scrambleOneEmail(s []byte) []byte {
-	atIndex := bytes.IndexRune(s, '@')
-	mailbox := Salt
-	if atIndex != -1 {
-		mailbox = s[:atIndex]
-	}
-	s = make([]byte, len(mailbox)+len(emailDomain))
-	copy(s, mailbox)
-	// ScrambleBytes is in-place, but may return string shorter than input.
-	mailbox = ScrambleBytes(s[:len(mailbox)])
-	copy(s[len(mailbox):], emailDomain)
-	// So final len(mailbox) may be shorter than whole allocated string.
-	return s[:len(mailbox)+len(emailDomain)]
-}
-
-// Supports array of emails in format {email1,email2}
-func ScrambleEmail(s []byte) []byte {
-	if len(s) < 2 {
-		// panic("ScrambleEmail: input is too small: '" + string(s) + "'")
-		return s
-	}
-	if s[0] != '{' && s[len(s)-1] != '}' {
-		return scrambleOneEmail(s)
-	}
-	parts := bytes.Split(s[1:len(s)-1], []byte{','})
-	partsNew := make([][]byte, len(parts))
-	outLength := 2 + len(parts) - 1
-	for i, bs := range parts {
-		partsNew[i] = scrambleOneEmail(bs)
-		outLength += len(partsNew[i])
-	}
-	s = make([]byte, outLength)
-	s[0] = '{'
-	s[len(s)-1] = '}'
-	copy(s[1:len(s)-1], bytes.Join(partsNew, []byte{','}))
-	return s
-}
-
-func ScrambleDigits(s []byte) []byte {
-	hash := sha256.New()
-	const sumLength = 32 // SHA256/8
-	hash.Write(Salt)
-	hash.Write(s)
-	sumBytes := hash.Sum(nil)
-
-	for i, b := range s {
-		if b >= '0' && b <= '9' {
-			s[i] = '0' + (sumBytes[i%sumLength]+b)%10
-		}
-	}
-	return s
-}
-
 func GenScrambleBytes(maxLength uint) func([]byte) []byte {
 	return func(s []byte) []byte {
 		// TODO: pad or extend s to maxLength
@@ -104,6 +51,59 @@ func ScrambleBytes(s []byte) []byte {
 			s[i] = byte(r)
 		}
 	}
+	return s
+}
+
+func ScrambleDigits(s []byte) []byte {
+	hash := sha256.New()
+	const sumLength = 32 // SHA256/8
+	hash.Write(Salt)
+	hash.Write(s)
+	sumBytes := hash.Sum(nil)
+
+	for i, b := range s {
+		if b >= '0' && b <= '9' {
+			s[i] = '0' + (sumBytes[i%sumLength]+b)%10
+		}
+	}
+	return s
+}
+
+func scrambleOneEmail(s []byte) []byte {
+	atIndex := bytes.IndexRune(s, '@')
+	mailbox := Salt
+	if atIndex != -1 {
+		mailbox = s[:atIndex]
+	}
+	s = make([]byte, len(mailbox)+len(emailDomain))
+	copy(s, mailbox)
+	// ScrambleBytes is in-place, but may return string shorter than input.
+	mailbox = ScrambleBytes(s[:len(mailbox)])
+	copy(s[len(mailbox):], emailDomain)
+	// So final len(mailbox) may be shorter than whole allocated string.
+	return s[:len(mailbox)+len(emailDomain)]
+}
+
+// Supports array of emails in format {email1,email2}
+func ScrambleEmail(s []byte) []byte {
+	if len(s) < 2 {
+		// panic("ScrambleEmail: input is too small: '" + string(s) + "'")
+		return s
+	}
+	if s[0] != '{' && s[len(s)-1] != '}' {
+		return scrambleOneEmail(s)
+	}
+	parts := bytes.Split(s[1:len(s)-1], []byte{','})
+	partsNew := make([][]byte, len(parts))
+	outLength := 2 + len(parts) - 1
+	for i, bs := range parts {
+		partsNew[i] = scrambleOneEmail(bs)
+		outLength += len(partsNew[i])
+	}
+	s = make([]byte, outLength)
+	s[0] = '{'
+	s[len(s)-1] = '}'
+	copy(s[1:len(s)-1], bytes.Join(partsNew, []byte{','}))
 	return s
 }
 
