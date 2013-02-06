@@ -108,6 +108,7 @@ func TestScrambleDigits(t *testing.T) {
 	Salt = []byte("test-salt")
 	assertScramble(t, ScrambleDigits, "+7(876) 123-0011 или 99999999999;",
 		"+1(584) 047-9250 или 22280031035;")
+	assertScramble(t, ScrambleDigits, "5", "7")
 }
 
 func TestScrambleEmail(t *testing.T) {

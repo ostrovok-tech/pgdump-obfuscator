@@ -51,10 +51,6 @@ func ScrambleEmail(s []byte) []byte {
 }
 
 func ScrambleDigits(s []byte) []byte {
-	if len(s) == 1 {
-		return s[:0]
-	}
-
 	hash := sha256.New()
 	const sumLength = 32 // SHA256/8
 	hash.Write(Salt)
