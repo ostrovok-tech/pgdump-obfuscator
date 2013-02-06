@@ -10,19 +10,21 @@ import (
 
 var Salt []byte
 
+const emailDomain = "@example.com"
+
 func scrambleOneEmail(s []byte) []byte {
 	atIndex := bytes.IndexRune(s, '@')
 	mailbox := Salt
-	domain := []byte("@example.com")
 	if atIndex != -1 {
 		mailbox = s[:atIndex]
 	}
-	s = make([]byte, len(mailbox)+len(domain))
+	s = make([]byte, len(mailbox)+len(emailDomain))
 	copy(s, mailbox)
-	copy(s[len(mailbox):], domain)
-	// ScrambleBytes is in-place
-	ScrambleBytes(s[0:len(mailbox)])
-	return s
+	// ScrambleBytes is in-place, but may return string shorter than input.
+	mailbox = ScrambleBytes(s[0:len(mailbox)])
+	copy(s[len(mailbox):], emailDomain)
+	// So final len(mailbox) may be shorter than whole allocated string.
+	return s[:len(mailbox)+len(emailDomain)]
 }
 
 // Supports array of emails in format {email1,email2}

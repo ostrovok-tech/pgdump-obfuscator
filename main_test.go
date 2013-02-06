@@ -116,6 +116,7 @@ func TestScrambleEmail(t *testing.T) {
 		"lxtTUsvMGzRo@example.com")
 	assertScramble(t, ScrambleEmail, "{foo@bar.com,test@example.com}",
 		"{DK3@example.com,LDVR@example.com}")
+	assertScramble(t, ScrambleEmail, "унеун@mail.ru", "gfpFV@example.com")
 }
 
 func BenchmarkScrambleBytes(b *testing.B) {
