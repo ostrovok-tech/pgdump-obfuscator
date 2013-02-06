@@ -152,6 +152,12 @@ func TestScrambleEmail(t *testing.T) {
 		"+QWUPnIS@example.com")
 }
 
+func TestScrambleInet(t *testing.T) {
+	Salt = []byte("test-salt")
+	assertScramble(t, ScrambleInet, "142.34.56.78", "56.42.246.77")
+	assertScramble(t, ScrambleInet, "97.34.0.18", "e4ed:d550:209d:9f10:f690:953:5d4f:c0d6")
+}
+
 func BenchmarkProcessShort(b *testing.B) {
 	b.StopTimer()
 	config := &Configuration{
@@ -252,5 +258,13 @@ func BenchmarkScrambleEmailArray(b *testing.B) {
 	email := "{admin@slapmode.de,trisha@moodnight.com.co,wilf@wolf.herztner.jp}"
 	for i := 0; i < b.N; i++ {
 		ScrambleEmail([]byte(email))
+	}
+}
+
+func BenchmarkScrambleInet(b *testing.B) {
+	Salt = []byte("test-salt")
+	s := []byte("23.11.1.239")
+	for i := 0; i < b.N; i++ {
+		ScrambleInet(s)
 	}
 }

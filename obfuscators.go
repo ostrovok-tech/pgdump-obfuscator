@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
+	"net"
 )
 
 var Salt []byte
@@ -105,6 +106,24 @@ func ScrambleEmail(s []byte) []byte {
 	s[len(s)-1] = '}'
 	copy(s[1:len(s)-1], bytes.Join(partsNew, []byte{','}))
 	return s
+}
+
+func ScrambleInet(s []byte) []byte {
+	hash := sha256.New()
+	const sumLength = 32 // SHA256/8
+	hash.Write(Salt)
+	hash.Write(s)
+	sumBytes := hash.Sum(nil)
+
+	var ip net.IP
+	// Decide to output IPv4 or IPv6 based on first bit of hash sum.
+	// Gives about 50% chance to each option.
+	if sumBytes[0]&0x80 != 0 {
+		ip = net.IP(sumBytes[:16])
+	} else {
+		ip = net.IP(sumBytes[:4])
+	}
+	return []byte(ip.String())
 }
 
 func init() {
