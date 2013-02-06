@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
-	"unicode/utf8"
 )
 
 var Salt []byte
