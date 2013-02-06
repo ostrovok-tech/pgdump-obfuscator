@@ -47,9 +47,13 @@ COPY accounts_profile (id, user_id, opted_in, next_break, status, phone, last_vi
 \.
 `
 
+func assertScramble(t *testing.T, scramble func([]byte) []byte, s, expected string) {
+	assertString(t, string(scramble([]byte(s))), expected)
+}
+
 func assertString(t *testing.T, s, expected string) {
 	if s != expected {
-		t.Fatalf("Expected: '%v' received: '%v'", expected, s)
+		t.Fatalf("Expected: '%s'(%d) received: '%s'(%d)", expected, len(expected), s, len(s))
 	}
 }
 
@@ -84,35 +88,34 @@ func TestProcess01(t *testing.T) {
 
 func TestScrambleBytes(t *testing.T) {
 	Salt = []byte("test-salt")
-	out1 := string(ScrambleBytes([]byte("everyone lies")))
-	assertString(t, out1, "oSE0Sm0yioFSJ")
-	out2 := string(ScrambleBytes([]byte("very long line very long line very long line very")))
-	assertString(t, out2, "4ce6EsWcmziuUzpEtV0rGiZAOtiHprwB0wWWWuOYrHkqHQtAN")
-	out3 := string(ScrambleBytes([]byte("{item1,\"item space 2\"}")))
-	assertString(t, out3, "{yho3y,rEZwPM7FVuVf1S}")
+	assertScramble(t, ScrambleBytes, "everyone lies", "oSE0Sm0yioFSJ")
+	assertScramble(t, ScrambleBytes, "very long line very long line very long line very",
+		"4ce6EsWcmziuUzpEtV0rGiZAOtiHprwB0wWWWuOYrHkqHQtAN")
+	assertScramble(t, ScrambleBytes, "{item1,\"item space 2\"}",
+		"{yho3y,rEZwPM7FVuVf1S}")
 }
 
 func TestScrambleBytesUtf8(t *testing.T) {
 	Salt = []byte("test-salt")
 	// Output must be of same length as input
-	out1 := string(ScrambleBytes([]byte("also русский and 你好")))
-	assertString(t, out1, "emEY0UP-gkC2kV+J6pK")
-	out2 := string(ScrambleBytes([]byte("{\"array z\",руки,你好}")))
-	assertString(t, out2, "{LoKXy6kRZ,uefS,G1}")
+	assertScramble(t, ScrambleBytes, "also русский and 你好",
+		"emEY0UP-gkC2kV+J6pK")
+	assertScramble(t, ScrambleBytes, "{\"array z\",руки,你好}",
+		"{LoKXy6kRZ,uefS,G1}")
 }
 
 func TestScrambleDigits(t *testing.T) {
 	Salt = []byte("test-salt")
-	out := string(ScrambleDigits([]byte("+7(876) 123-0011 или 99999999999;")))
-	assertString(t, out, "+1(584) 047-9250 или 22280031035;")
+	assertScramble(t, ScrambleDigits, "+7(876) 123-0011 или 99999999999;",
+		"+1(584) 047-9250 или 22280031035;")
 }
 
 func TestScrambleEmail(t *testing.T) {
 	Salt = []byte("test-salt")
-	out1 := string(ScrambleEmail([]byte("solar.sultan@emerginspaceagency.com")))
-	assertString(t, out1, "lxtTUsvMGzRo@example.com")
-	out2 := string(ScrambleEmail([]byte("{foo@bar.com,test@example.com}")))
-	assertString(t, out2, "{DK3@example.com,LDVR@example.com}")
+	assertScramble(t, ScrambleEmail, "solar.sultan@emerginspaceagency.com",
+		"lxtTUsvMGzRo@example.com")
+	assertScramble(t, ScrambleEmail, "{foo@bar.com,test@example.com}",
+		"{DK3@example.com,LDVR@example.com}")
 }
 
 func BenchmarkScrambleBytes(b *testing.B) {
