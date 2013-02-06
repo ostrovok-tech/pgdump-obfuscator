@@ -86,6 +86,36 @@ func TestProcess01(t *testing.T) {
 	assertString(t, fields[4], "\\N")
 }
 
+func TestProcess02(t *testing.T) {
+	testConfig02 := &Configuration{
+		Obfuscations: []TargetedObfuscation{
+			TargetedObfuscation{
+				Target{Table: "with_emails", Column: "id"},
+				ScrambleDigits,
+			},
+			TargetedObfuscation{
+				Target{Table: "with_emails", Column: "emails_list"},
+				ScrambleEmail,
+			},
+		},
+	}
+	const testInput02 = `COPY with_emails (id, emails_list) FROM stdin;
+41	e1@hbo.com,info@o2.co.uk
+52	e3@mail.ru,e4@gmail.com
+\.
+`
+	const expected = `COPY with_emails (id, emails_list) FROM stdin;
+09	7f@example.com
+02	M7@example.com
+\.
+`
+	input := bufio.NewReader(bytes.NewBufferString(testInput02))
+	output := new(bytes.Buffer)
+	Salt = []byte("test-salt")
+	process(testConfig02, input, output)
+	assertString(t, output.String(), expected)
+}
+
 func TestScrambleBytes(t *testing.T) {
 	Salt = []byte("test-salt")
 	assertScramble(t, ScrambleBytes, "everyone lies", "oSE0Sm0yioFSJ")
@@ -118,6 +148,71 @@ func TestScrambleEmail(t *testing.T) {
 	assertScramble(t, ScrambleEmail, "{foo@bar.com,test@example.com}",
 		"{DK3@example.com,LDVR@example.com}")
 	assertScramble(t, ScrambleEmail, "унеун@mail.ru", "gfpFV@example.com")
+	assertScramble(t, ScrambleEmail, "multiple@emails.com,but.not@array.in",
+		"+QWUPnIS@example.com")
+}
+
+func BenchmarkProcessShort(b *testing.B) {
+	b.StopTimer()
+	config := &Configuration{
+		Obfuscations: []TargetedObfuscation{
+			TargetedObfuscation{
+				Target{Table: "simple", Column: "id"},
+				ScrambleDigits,
+			},
+			TargetedObfuscation{
+				Target{Table: "simple", Column: "email"},
+				ScrambleEmail,
+			},
+			TargetedObfuscation{
+				Target{Table: "simple", Column: "password"},
+				ScrambleBytes,
+			},
+		},
+	}
+	const s = `--
+-- Useless comments
+--
+
+select 'and other statements';
+
+create table simple (
+	id serial not null,
+	email text not null,
+	password text not null
+);
+
+
+COPY simple (id, email, password) FROM stdin;
+13	e1zz@hbo.com	12345
+27	e3@mail.ru	password
+28	wha@who.net	strongPassw0rd
+33	admin@ad.co.uk	allyourbase
+41	martin.martin@drop.tv	belongto
+42	xxx@strong.net	usususus
+43	e1@hbo.com	12345
+44	e3qq@mail.ru	password
+48	wha@who.net	strongPassw0rd
+49	admin@ad.co.uk	allyourbase
+50	martin.martin@drop.tv	belongto
+121	xxx@strong.net	usususus
+122	e1www@hbo.com	12345
+123	e3gggggg@mail.ru	password
+124	wha@who.net	strongPassw0rd
+125	admin@ad.co.uk	allyourbase
+126	martin.martin@drop.tv	belongto
+127	xxx@strong.net	usususus
+\.
+`
+	var input *bufio.Reader
+	var output *bytes.Buffer
+	for i := 0; i < b.N; i++ {
+		input = bufio.NewReader(bytes.NewBufferString(s))
+		output = new(bytes.Buffer)
+		b.StartTimer()
+		process(config, input, output)
+		b.StopTimer()
+	}
 }
 
 func BenchmarkScrambleBytes(b *testing.B) {

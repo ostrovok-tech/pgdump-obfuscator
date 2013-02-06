@@ -76,6 +76,7 @@ const (
 
 var bytesCopyBegin = []byte("COPY ")
 var bytesCopyEnd = []byte("\\.\n")
+var bytesNewline = []byte("\n")
 
 const copySyntaxDelimiters = " \n'\"(),;"
 
@@ -131,9 +132,15 @@ func process(config *Configuration, input *bufio.Reader, output io.Writer) error
 				target = Target{}
 			} else if find(configuredTables, target.Table) != -1 {
 				// Data rows
+				hasNewlineSuffix := bytes.HasSuffix(line, bytesNewline)
+				if hasNewlineSuffix {
+					line = line[:len(line)-1]
+				}
 				err = processDataLine(config, &target, columns, &line)
 				if err != nil {
 					log.Println("process: line", currentLineNumber, "error:", err)
+				} else if hasNewlineSuffix {
+					line = append(line, '\n')
 				}
 			}
 		}

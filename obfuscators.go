@@ -21,7 +21,7 @@ func scrambleOneEmail(s []byte) []byte {
 	s = make([]byte, len(mailbox)+len(emailDomain))
 	copy(s, mailbox)
 	// ScrambleBytes is in-place, but may return string shorter than input.
-	mailbox = ScrambleBytes(s[0:len(mailbox)])
+	mailbox = ScrambleBytes(s[:len(mailbox)])
 	copy(s[len(mailbox):], emailDomain)
 	// So final len(mailbox) may be shorter than whole allocated string.
 	return s[:len(mailbox)+len(emailDomain)]
