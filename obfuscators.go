@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"net"
+	"errors"
+	"fmt"
 )
 
 var Salt []byte
@@ -124,6 +126,20 @@ func ScrambleInet(s []byte) []byte {
 		ip = net.IP(sumBytes[:4])
 	}
 	return []byte(ip.String())
+}
+
+func GetScrambleByName(value string) (func(s []byte) []byte, error) {
+	switch value {
+		case "bytes":
+			return ScrambleBytes, nil
+		case "digits":
+			return ScrambleDigits, nil
+		case "email":
+			return ScrambleEmail, nil
+		case "inet":
+			return ScrambleInet, nil
+	}
+	return nil, errors.New(fmt.Sprintf("%s is not registered scramble function", value))
 }
 
 func init() {

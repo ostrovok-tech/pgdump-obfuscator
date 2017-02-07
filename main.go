@@ -13,7 +13,43 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"fmt"
 )
+
+type configFlags []string
+
+func (self *configFlags) String() string {
+	return strings.Join(*self, ", ")
+}
+
+func (self *configFlags) Set(value string) error {
+	*self = append(*self, value)
+	return nil
+}
+
+func (self *configFlags) ToConfiguration() (*Configuration, error) {
+	configuration := &Configuration{}
+	for _, v := range *self {
+		splittedValues := strings.Split(v, ":")
+		if len(splittedValues) == 3 {
+			table, column, name := splittedValues[0], splittedValues[1], splittedValues[2]
+			scrambler, err := GetScrambleByName(name)
+			if err != nil {
+				return configuration, err
+			}
+			configuration.Obfuscations = append(
+				configuration.Obfuscations,
+				TargetedObfuscation{
+					Target{Table: table, Column: column},
+					scrambler,
+				},
+			)
+		} else {
+			return nil, errors.New(fmt.Sprintf("Inccorrect data in configuration flags!\n"))
+		}
+	}
+	return configuration, nil
+}
 
 type Target struct {
 	Database string
@@ -155,9 +191,11 @@ func process(config *Configuration, input *bufio.Reader, output io.Writer) error
 }
 
 func main() {
+	var configs configFlags
 	inputPath := flag.String("input", "-", "Input filename, '-' for stdin")
 	cpuprofile := flag.String("cpuprofile", "", "Write CPU profile to file")
 	memprofile := flag.String("memprofile", "", "Write memory profile to file")
+	flag.Var(&configs, "c", "Configs, example: auth_user:email:email, auth_user:password:bytes")
 	flag.Parse()
 
 	if *cpuprofile != "" {
@@ -209,5 +247,11 @@ func main() {
 	// TODO
 	output := os.Stdout
 
-	process(Config, input, output)
+	configuration, err := configs.ToConfiguration()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	process(configuration, input, output)
 }

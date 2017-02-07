@@ -10,10 +10,25 @@ Streaming obfuscator of sensitive data in PostgreSQL dumps (pg_dump).
     $ pg_dump [...] |pgdump-obfuscator |less  # inspect
 
 
-TODO
+Configuration
 ====
 
-* Config file. Currently obfuscation rules are hardcoded in config.go, so you have to recompile to try new rules. Easy with `go run`.
+```
+pgdump-obfuscator -h
+
+Usage of ./pgdump-obfuscator:
+  -c value
+    	Configs, example: auth_user:email:email, auth_user:password:bytes
+  ...
+```
+
+That mean you can provide as many "-c option" as you need.
+
+Example:
+
+```
+pgdump-obfuscator -c auth_user:email:email -c auth_user:password:bytes -c address_useraddress:phone_number:digits -c address_useraddress:land_line:digits
+```
 
 
 Who
