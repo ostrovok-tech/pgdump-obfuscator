@@ -16,6 +16,13 @@ TODO
 * Config file. Currently obfuscation rules are hardcoded in config.go, so you have to recompile to try new rules. Easy with `go run`.
 
 
+Docker
+====
+
+```
+docker run -v /path/to/destination:/data ostrovok-team/pgdump-obfuscator zcat /data/dump.gz | pgdump-obfuscator | gzip > /data/dump.obfuscated.gz
+```
+
 Who
 ===
 
